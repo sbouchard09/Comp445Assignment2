@@ -67,7 +67,31 @@ public class Server implements Runnable {
             responseWriter = new PrintWriter(socket.getOutputStream());
 
             if(fileName.equals("/")) { // return all files
+                File directory = new File("/");
+                File[] list = directory.listFiles();
+                StringBuilder directoryBuilder = new StringBuilder();
+                directoryBuilder.append("{ \n");
 
+                for(int i = 0; i < list.length; i++) {
+                    if(list[i].isFile()) {
+                        directoryBuilder.append("\tFile: ");
+                    } else if (list[i].isDirectory()) {
+                        directoryBuilder.append("\tDirectory: ");
+                    } else {
+                        continue;
+                    }
+                    directoryBuilder.append(list[i].getName() + "\n");
+                }
+                directoryBuilder.append("}");
+
+                responseWriter.println("HTTP/1.0 200 OK");
+                responseWriter.println("Date: " + getDate());
+                responseWriter.println("Server: localhost");
+                responseWriter.println("Content-Length: " + directoryBuilder.toString().length());
+                responseWriter.println();
+                responseWriter.println(directoryBuilder.toString()); // list of files
+                responseWriter.flush();
+                responseWriter.close();
             } else { // get file
                 File file = new File(fileName);
 

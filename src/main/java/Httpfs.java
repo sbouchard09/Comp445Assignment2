@@ -25,6 +25,8 @@ public class Httpfs {
         try{
             ServerSocket serverSocket = new ServerSocket(port);
 
+            System.out.println("Listening on port " + port);
+
             while(true) {
                 Server server = new Server(serverSocket.accept(), directory);
 
