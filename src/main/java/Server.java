@@ -1,6 +1,10 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class Server implements Runnable {
 
@@ -20,8 +24,6 @@ public class Server implements Runnable {
     public void run() {
 
         BufferedReader reader = null;
-        PrintWriter output = null;
-        BufferedOutputStream outputBuffer = null;
 
         try {
             String line = "";
@@ -51,17 +53,36 @@ public class Server implements Runnable {
     private void handleGet(String fileName) {
         // if fileName.equals("/") --> return all files in directory
         //          return 200 OK if successful
-        //          return 401 Unauthorized if unauthorized to be there
         // else return the requested file
         //          return 200 OK if successful
         //          return 401 Unauthorized if unauthorized to be there
         //          return 405 Not Found if file is not found
+        PrintWriter responseWriter = null;
+        BufferedOutputStream outputBuffer = null;
+
+        try {
+            responseWriter = new PrintWriter(socket.getOutputStream());
+            responseWriter.println("HTTP/1.0 403 Forbidden");
+            responseWriter.println("Date: " + getDate());
+            responseWriter.println();
+            responseWriter.flush();
+            responseWriter.close();
+        } catch(IOException e) {
+
+        }
     }
 
     private void handlePost(String fileName) {
         // create the file with fileName if the file does not exist
         // over write the file if it does exist in directory
         //          return 201 Created if successful
-        //          return 401 Unauthorized if not authorized to be there
+        //          return 403 Forbidden if file is not in directory
+    }
+
+    private String getDate() {
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.CANADA);
+        format.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return format.format(calendar.getTime());
     }
 }
