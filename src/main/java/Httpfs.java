@@ -1,10 +1,13 @@
 import CLIParsing.CLIParameter;
 import com.beust.jcommander.JCommander;
 
+import java.io.IOException;
+import java.net.ServerSocket;
+
 public class Httpfs {
 
-    private static String port = "8080";
-    private static String directory;
+    private static Integer port = 8080;
+    private static String directory = "";
     private boolean debuggingMessages = false;
 
     public static void main(String[] args) {
@@ -19,5 +22,18 @@ public class Httpfs {
             //
         }
 
+        try{
+            ServerSocket serverSocket = new ServerSocket(port);
+
+            while(true) {
+                Server server = new Server(serverSocket.accept(), directory);
+
+                // bonus fulfillment: concurrent connections using threads
+                Thread thread = new Thread(server);
+                thread.start();
+            }
+        } catch(IOException e) {
+
+        }
     }
 }

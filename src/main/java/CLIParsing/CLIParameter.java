@@ -14,7 +14,7 @@ public class CLIParameter {
     private Boolean debug = false;
 
     @Parameter(names = {"-p"})
-    private String port;
+    private Integer port;
 
     @Parameter(names = {"-d"})
     private String directory;
@@ -23,7 +23,7 @@ public class CLIParameter {
         return this.debug;
     }
 
-    public String getPort() {
+    public Integer getPort() {
         return this.port;
     }
 
