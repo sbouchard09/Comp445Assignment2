@@ -36,6 +36,9 @@ public class Server implements Runnable {
 
             requestMethod = info[0].replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
             file = info[1];
+            if(file.length() > 1) {
+                file = file.startsWith("/") ? file.substring(1) : file;
+            }
 
             if(requestMethod.equals("GET")) {
                 handleGet(file);
@@ -62,11 +65,43 @@ public class Server implements Runnable {
 
         try {
             responseWriter = new PrintWriter(socket.getOutputStream());
-            responseWriter.println("HTTP/1.0 403 Forbidden");
-            responseWriter.println("Date: " + getDate());
-            responseWriter.println();
-            responseWriter.flush();
-            responseWriter.close();
+
+            if(fileName.equals("/")) { // return all files
+
+            } else { // get file
+                File file = new File(fileName);
+
+                if(file.isDirectory()) { // 403
+                    forbidden(responseWriter);
+                } else if(!file.exists()) { // 405
+                    responseWriter.println("HTTP/1.0 405 Not Found");
+                    responseWriter.println("Date: " + getDate());
+                    responseWriter.println(fileName);
+                    responseWriter.println();
+                    responseWriter.flush();
+                    responseWriter.close();
+                } else if(file.isFile()) { // 200 OK
+                    BufferedReader reader = new BufferedReader(new FileReader(fileName));
+                    StringBuilder sb = new StringBuilder();
+                    String line = reader.readLine();
+
+                    while(line != null) {
+                        sb.append(line);
+                        sb.append("\n");
+                        line = reader.readLine();
+                    }
+
+                    responseWriter.println("HTTP/1.0 200 OK");
+                    responseWriter.println("Date: " + getDate());
+                    responseWriter.println("Server: localhost");
+                    //responseWriter.println("Content-Type: " + getContentType(fileName)); // not implemented
+                    responseWriter.println("Content-Length: " + file.length());
+                    responseWriter.println();
+                    responseWriter.println(sb.toString()); // body/contents of the file
+                    responseWriter.flush();
+                    responseWriter.close();
+                }
+            }
         } catch(IOException e) {
 
         }
@@ -76,7 +111,15 @@ public class Server implements Runnable {
         // create the file with fileName if the file does not exist
         // over write the file if it does exist in directory
         //          return 201 Created if successful
-        //          return 403 Forbidden if file is not in directory
+        //          return 403 Forbidden if file is not in directory (forbidden method below)
+    }
+
+    private void forbidden(PrintWriter responseWriter) throws IOException {
+        responseWriter.println("HTTP/1.0 403 Forbidden");
+        responseWriter.println("Date: " + getDate());
+        responseWriter.println();
+        responseWriter.flush();
+        responseWriter.close();
     }
 
     private String getDate() {
