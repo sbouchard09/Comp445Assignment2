@@ -30,14 +30,17 @@ public class Server implements Runnable {
             String[] info;
             String requestMethod; // GET | POST
             String file;
-            String body;
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             line = reader.readLine();
             info = line.split(" ");
-
+            String input = " ";
+            while ((line = reader.readLine()) != null) {
+                input += line;
+            }
+            String body = input.split("\r\n\r\n")[1];
             requestMethod = info[0].replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
             file = info[1];
-            body = info[2];
+
             if(file.length() > 1) {
                 file = file.startsWith("/") ? file.substring(1) : file;
             }
