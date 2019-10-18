@@ -5,11 +5,17 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.lang.Runnable;
+import java.util.regex.*;
+
+
 
 public class Server implements Runnable {
 
     private Socket socket;
     private String directory;
+    private String disposition="";
+
 
     public Server(Socket socket, String directory) {
         this.socket = socket;
@@ -38,6 +44,13 @@ public class Server implements Runnable {
                 input += line;
             }
             String body = input.split("\r\n\r\n")[1];
+            String dispoRegex = "(Content-Disposition:?m)^*$";
+            Pattern p = Pattern.compile(dispoRegex, Pattern.CASE_INSENSITIVE);
+            Matcher m = p.matcher(body);
+            while(m.find())
+            {
+                disposition += m.group() + "\n";
+            }
             requestMethod = info[0].replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
             file = info[1];
 
@@ -123,7 +136,7 @@ public class Server implements Runnable {
                     responseWriter.println("HTTP/1.0 200 OK");
                     responseWriter.println("Date: " + getDate());
                     responseWriter.println("Server: localhost");
-                    //responseWriter.println("Content-Type: " + getContentType(fileName)); // not implemented
+                    responseWriter.println("Content-Disposition: " + getDisposition()); // not implemented
                     responseWriter.println("Content-Length: " + file.length());
                     responseWriter.println();
                     responseWriter.println(sb.toString()); // body/contents of the file
@@ -134,6 +147,10 @@ public class Server implements Runnable {
         } catch(IOException e) {
 
         }
+    }
+
+    private String getDisposition() {
+        return this.disposition;
     }
 
     private void handlePost(String fileName, String body) {
@@ -164,7 +181,7 @@ public class Server implements Runnable {
                 responseWriter.println("HTTP/1.0 200 OK");
                 responseWriter.println("Date: " + getDate());
                 responseWriter.println("Server: localhost");
-                //responseWriter.println("Content-Type: " + getContentType(fileName)); // not implemented
+                responseWriter.println("Content-Type: " + getDisposition()); // not implemented
                 responseWriter.println("Content-Length: " + fileName.length());
                 responseWriter.println();
                 responseWriter.flush();
