@@ -215,9 +215,7 @@ public class Server implements Runnable {
     }
 
     private boolean isForbidden(String fileName){
-        File dir = new File(directory);
-        File file = new File(fileName);
-        return !(dir.getAbsolutePath().toString().contains(file.getAbsolutePath().toString()));
+        return new File(directory, fileName).exists();
     }
 
     private void forbidden(PrintWriter responseWriter) throws IOException {

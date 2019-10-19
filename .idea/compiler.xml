@@ -10,5 +10,8 @@
         <module name="Comp445Assignment2" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="Assignment2" target="7" />
+    </bytecodeTargetLevel>
   </component>
 </project>
