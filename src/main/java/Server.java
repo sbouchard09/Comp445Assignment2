@@ -14,8 +14,6 @@ public class Server implements Runnable {
 
     private Socket socket;
     private String directory;
-    private String disposition="";
-
 
     public Server(Socket socket, String directory) {
         this.socket = socket;
@@ -44,13 +42,6 @@ public class Server implements Runnable {
                 input += line;
             }
             String body = input.split("\r\n\r\n")[1];
-            String dispoRegex = "(Content-Disposition:?m)^*$";
-            Pattern p = Pattern.compile(dispoRegex, Pattern.CASE_INSENSITIVE);
-            Matcher m = p.matcher(body);
-            while(m.find())
-            {
-                disposition += m.group() + "\n";
-            }
             requestMethod = info[0].replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
             file = info[1];
 
@@ -136,7 +127,8 @@ public class Server implements Runnable {
                     responseWriter.println("HTTP/1.0 200 OK");
                     responseWriter.println("Date: " + getDate());
                     responseWriter.println("Server: localhost");
-                    responseWriter.println("Content-Disposition: " + getDisposition()); // not implemented
+                    responseWriter.println("Content-Type: " + getContentType(fileName));
+                    responseWriter.println("Content-Disposition: attachment; filename=\"" + getFileName(fileName) + "\"");
                     responseWriter.println("Content-Length: " + file.length());
                     responseWriter.println();
                     responseWriter.println(sb.toString()); // body/contents of the file
@@ -149,8 +141,24 @@ public class Server implements Runnable {
         }
     }
 
-    private String getDisposition() {
-        return this.disposition;
+    private String getContentType(String fileName) {
+        String extension = fileName.substring(fileName.lastIndexOf('.'));
+        String type = "";
+
+        if(extension.equals("txt")) {
+            type = "text/plain";
+        } else if(extension.equals("json")) {
+            type = "application/json";
+        } else if(extension.equals("htm") || extension.equals("html")) {
+            type = "text/html";
+        }
+
+        return type;
+    }
+
+    private String getFileName(String fileName) {
+        String[] s = fileName.split("/");
+        return s[s.length - 1];
     }
 
     private void handlePost(String fileName, String body) {
@@ -181,7 +189,6 @@ public class Server implements Runnable {
                 responseWriter.println("HTTP/1.0 200 OK");
                 responseWriter.println("Date: " + getDate());
                 responseWriter.println("Server: localhost");
-                responseWriter.println("Content-Type: " + getDisposition()); // not implemented
                 responseWriter.println("Content-Length: " + fileName.length());
                 responseWriter.println();
                 responseWriter.flush();
