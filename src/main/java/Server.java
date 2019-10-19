@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
@@ -18,7 +19,7 @@ public class Server implements Runnable {
     public Server(Socket socket, String directory) {
         this.socket = socket;
         if(directory.equals("")) {
-
+            this.directory = Paths.get("").toAbsolutePath().toString();
         } else {
             this.directory = directory;
         }
@@ -104,7 +105,7 @@ public class Server implements Runnable {
             } else { // get file
                 File file = new File(fileName);
 
-                if(file.isDirectory()) { // 403
+                if(isForbidden(fileName)) { // 403
                     forbidden(responseWriter);
                 } else if(!file.exists()) { // 405
                     responseWriter.println("HTTP/1.0 405 Not Found");
@@ -206,6 +207,15 @@ public class Server implements Runnable {
         File dir = new File(directory);
         File file = new File(fileName);
         return !(dir.getAbsolutePath().toString().contains(file.getAbsolutePath().toString()));
+    }
+
+    private boolean isForbidden(String fileName) {
+        File workingDirectory = new File(directory);
+        File file = new File(fileName);
+        File[] files = workingDirectory.listFiles();
+
+
+        return false;
     }
 
     private void forbidden(PrintWriter responseWriter) throws IOException {
