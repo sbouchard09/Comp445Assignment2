@@ -22,6 +22,11 @@ public class Httpfs {
             //
         }
 
+        // set port
+        if(parameters.getPort() != null) {
+            port = parameters.getPort();
+        }
+
         try{
             ServerSocket serverSocket = new ServerSocket(port);
 

@@ -19,7 +19,7 @@ public class Server implements Runnable {
     public Server(Socket socket, String directory) {
         this.socket = socket;
         if(directory.equals("")) {
-            this.directory = Paths.get("").toAbsolutePath().toString();
+            this.directory = System.getProperty("user.dir");
         } else {
             this.directory = directory;
         }
@@ -38,11 +38,7 @@ public class Server implements Runnable {
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             line = reader.readLine();
             info = line.split(" ");
-            String input = " ";
-            while ((line = reader.readLine()) != null) {
-                input += line;
-            }
-            String body = input.split("\r\n\r\n")[1];
+
             requestMethod = info[0].replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
             file = info[1];
 
@@ -52,8 +48,23 @@ public class Server implements Runnable {
 
             if(requestMethod.equals("GET")) {
                 handleGet(file);
+                reader.close();
             } else if(requestMethod.equals("POST")) {
-                handlePost(file, body);
+                // read request
+                StringBuilder requestBuilder = new StringBuilder();
+                String request = "";
+                while((line = reader.readLine()) != null) {
+                    requestBuilder.append(line + "\r\n");
+                }
+
+                request = requestBuilder.toString();
+                // get request body
+                try {
+                    String body = request.split("\r\n\r\n")[1];
+                    handlePost(file, body);
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    handlePost(file, "");
+                }
             } else {
                 System.out.println("Invalid request method");
                 return;
@@ -77,9 +88,10 @@ public class Server implements Runnable {
             responseWriter = new PrintWriter(socket.getOutputStream());
 
             if(fileName.equals("/")) { // return all files
-                File directory = new File("/");
-                File[] list = directory.listFiles();
+                File dir = new File(directory);
+                File[] list = dir.listFiles();
                 StringBuilder directoryBuilder = new StringBuilder();
+                StringBuilder responseBuilder = new StringBuilder();
                 directoryBuilder.append("{ \n");
 
                 for(int i = 0; i < list.length; i++) {
@@ -94,12 +106,13 @@ public class Server implements Runnable {
                 }
                 directoryBuilder.append("}");
 
-                responseWriter.println("HTTP/1.0 200 OK");
-                responseWriter.println("Date: " + getDate());
-                responseWriter.println("Server: localhost");
-                responseWriter.println("Content-Length: " + directoryBuilder.toString().length());
-                responseWriter.println();
-                responseWriter.println(directoryBuilder.toString()); // list of files
+                responseBuilder.append("HTTP/1.0 200 OK\r\n");
+                responseBuilder.append("Date: " + getDate() + "\r\n");
+                responseBuilder.append("Server: localhost\r\n");
+                responseBuilder.append("Content-Length: " + directoryBuilder.toString().length() + "\r\n");
+                responseBuilder.append("\r\n\r\n");
+                responseBuilder.append(directoryBuilder.toString() + "\r\n"); // list of files
+                responseWriter.println(responseBuilder.toString());
                 responseWriter.flush();
                 responseWriter.close();
             } else { // get file
@@ -172,12 +185,10 @@ public class Server implements Runnable {
         PrintWriter fileWriter = null;
 
         try {
-
             if(isForbidden(fileName)) {
                 responseWriter = new PrintWriter(socket.getOutputStream());
 
                 forbidden(responseWriter);
-
             } else {
                 responseWriter = new PrintWriter(socket.getOutputStream());
 
@@ -187,7 +198,7 @@ public class Server implements Runnable {
                 fileWriter.flush();
                 fileWriter.close();
 
-                responseWriter.println("HTTP/1.0 200 OK");
+                responseWriter.println("HTTP/1.0 201 Created");
                 responseWriter.println("Date: " + getDate());
                 responseWriter.println("Server: localhost");
                 responseWriter.println("Content-Length: " + fileName.length());
@@ -198,7 +209,7 @@ public class Server implements Runnable {
 
 
         } catch(IOException e) {
-
+            e.printStackTrace();
         }
 
     }
@@ -207,15 +218,6 @@ public class Server implements Runnable {
         File dir = new File(directory);
         File file = new File(fileName);
         return !(dir.getAbsolutePath().toString().contains(file.getAbsolutePath().toString()));
-    }
-
-    private boolean isForbidden(String fileName) {
-        File workingDirectory = new File(directory);
-        File file = new File(fileName);
-        File[] files = workingDirectory.listFiles();
-
-
-        return false;
     }
 
     private void forbidden(PrintWriter responseWriter) throws IOException {
