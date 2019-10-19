@@ -6,6 +6,10 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.lang.Runnable;
+import java.util.regex.*;
+
+
 
 public class Server implements Runnable {
 
@@ -34,9 +38,14 @@ public class Server implements Runnable {
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             line = reader.readLine();
             info = line.split(" ");
-
+            String input = " ";
+            while ((line = reader.readLine()) != null) {
+                input += line;
+            }
+            String body = input.split("\r\n\r\n")[1];
             requestMethod = info[0].replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
             file = info[1];
+
             if(file.length() > 1) {
                 file = file.startsWith("/") ? file.substring(1) : file;
             }
@@ -44,7 +53,7 @@ public class Server implements Runnable {
             if(requestMethod.equals("GET")) {
                 handleGet(file);
             } else if(requestMethod.equals("POST")) {
-                handlePost(file);
+                handlePost(file, body);
             } else {
                 System.out.println("Invalid request method");
                 return;
@@ -119,7 +128,8 @@ public class Server implements Runnable {
                     responseWriter.println("HTTP/1.0 200 OK");
                     responseWriter.println("Date: " + getDate());
                     responseWriter.println("Server: localhost");
-                    //responseWriter.println("Content-Type: " + getContentType(fileName)); // not implemented
+                    responseWriter.println("Content-Type: " + getContentType(fileName));
+                    responseWriter.println("Content-Disposition: attachment; filename=\"" + getFileName(fileName) + "\"");
                     responseWriter.println("Content-Length: " + file.length());
                     responseWriter.println();
                     responseWriter.println(sb.toString()); // body/contents of the file
@@ -132,11 +142,71 @@ public class Server implements Runnable {
         }
     }
 
-    private void handlePost(String fileName) {
+    private String getContentType(String fileName) {
+        String extension = fileName.substring(fileName.lastIndexOf('.'));
+        String type = "";
+
+        if(extension.equals("txt")) {
+            type = "text/plain";
+        } else if(extension.equals("json")) {
+            type = "application/json";
+        } else if(extension.equals("htm") || extension.equals("html")) {
+            type = "text/html";
+        }
+
+        return type;
+    }
+
+    private String getFileName(String fileName) {
+        String[] s = fileName.split("/");
+        return s[s.length - 1];
+    }
+
+    private void handlePost(String fileName, String body) {
+        // overload the method with body parameter to handle input to file
         // create the file with fileName if the file does not exist
         // over write the file if it does exist in directory
         //          return 201 Created if successful
         //          return 403 Forbidden if file is not in directory (forbidden method below)
+        PrintWriter responseWriter = null;
+        PrintWriter fileWriter = null;
+
+        try {
+
+            if(isForbidden(fileName)) {
+                responseWriter = new PrintWriter(socket.getOutputStream());
+
+                forbidden(responseWriter);
+
+            } else {
+                responseWriter = new PrintWriter(socket.getOutputStream());
+
+                fileWriter = new PrintWriter(new FileOutputStream(fileName, false));
+
+                fileWriter.println(body);
+                fileWriter.flush();
+                fileWriter.close();
+
+                responseWriter.println("HTTP/1.0 200 OK");
+                responseWriter.println("Date: " + getDate());
+                responseWriter.println("Server: localhost");
+                responseWriter.println("Content-Length: " + fileName.length());
+                responseWriter.println();
+                responseWriter.flush();
+                responseWriter.close();
+            }
+
+
+        } catch(IOException e) {
+
+        }
+
+    }
+
+    private boolean isForbidden(String fileName){
+        File dir = new File(directory);
+        File file = new File(fileName);
+        return !(dir.getAbsolutePath().toString().contains(file.getAbsolutePath().toString()));
     }
 
     private boolean isForbidden(String fileName) {

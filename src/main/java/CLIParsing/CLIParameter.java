@@ -19,6 +19,7 @@ public class CLIParameter {
     @Parameter(names = {"-d"})
     private String directory;
 
+
     public Boolean getDebug() {
         return this.debug;
     }
