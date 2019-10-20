@@ -215,7 +215,25 @@ public class Server implements Runnable {
     }
 
     private boolean isForbidden(String fileName){
-        return new File(directory, fileName).exists();
+        File f = new File(fileName);
+        File currentDirectory = new File(directory);
+        if(f.isDirectory()) {
+            return true;
+        }
+
+        if(fileName.matches("^[\\w\\-. ]+$")) {
+            return false;
+        }
+
+        try {
+            if(f.getCanonicalPath().contains(currentDirectory.getCanonicalPath())) {
+                return false; // able to write here
+            }
+        } catch(IOException e) {
+            return true;
+        }
+
+        return true;
     }
 
     private void forbidden(PrintWriter responseWriter) throws IOException {
